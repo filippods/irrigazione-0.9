@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema di Irrigazione</title>
+    <link rel="icon" href="favicon.webp" type="image/webp">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        /* Stili CSS generali */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f0f0f0 25%, #e0e0e0 100%);
+            padding-top: 60px; /* Per lo spazio della barra di stato */
+            color: #333;
+            min-height: 100vh;
+        }
+
+        /* Barra di stato fissa */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            height: 60px;
+        }
+
+        /* Icona del menu */
+        .menu-icon {
+            padding: 10px;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        .menu-icon:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Logo centrale */
+        .logo {
+            font-size: 20px;
+            font-weight: 600;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+        }
+
+        .logo img {
+            height: 32px;
+            margin-right: 8px;
+        }
+
+        /* Data e ora */
+        .datetime {
+            display: flex;
+            flex-direction: column;
+            text-align: right;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        /* Banner informativo stato programma */
+        .program-status-banner {
+            display: none;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            background-color: #0099ff;
+            color: white;
+            z-index: 998;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+        
+        .banner-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .banner-icon {
+            font-size: 18px;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        .banner-text {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .banner-text span {
+            font-weight: 600;
+        }
+        
+        .banner-details {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .banner-stop-btn {
+            background-color: #ff3333;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .banner-stop-btn:hover {
+            background-color: #d32f2f;
+        }
+        
+        /* Adatta il contenuto principale per non sovrapporsi al banner quando è visibile */
+        main.with-banner {
+            padding-top: 50px;
+        }
+
+        /* Menu laterale */
+        .menu {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 280px;
+            height: calc(100% - 60px);
+            background-color: #fff;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            z-index: 999;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .menu.active {
+            transform: translateX(0);
+        }
+
+        .menu ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+        }
+
+        .menu li {
+            padding: 16px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .menu li:hover {
+            background-color: #f5f5f5;
+        }
+
+        .menu li.active {
+            background-color: #e6f7ff;
+            border-left: 4px solid #0099ff;
+        }
+
+        .menu li i {
+            margin-right: 12px;
+            font-size: 20px;
+            color: #0099ff;
+        }
+
+        /* Pulsante Arresto Totale */
+        .stop-all-button {
+            margin-top: auto;
+            padding: 16px 20px;
+            background-color: #ff3333;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stop-all-button:hover {
+            background-color: #e60000;
+        }
+
+        .stop-all-button i {
+            margin-right: 8px;
+            font-size: 20px;
+        }
+
+        /* Contenuto principale */
+        main {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            transition: padding-top 0.3s ease;
+        }
+
+.overlay {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+}
+
+.menu-overlay {
+    z-index: 997; /* Assicurati che sia sotto il menu */
+}
+
+.overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+        
+        /* Notifica Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1500;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        
+        .toast {
+            background-color: rgba(51, 51, 51, 0.95);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            min-width: 200px;
+            max-width: 350px;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .toast.success {			
+			border-left: 5px solid #00cc66;
+        }
+        
+        .toast.error {
+            border-left: 5px solid #ff3333;
+        }
+        
+        .toast.info {
+            border-left: 5px solid #0099ff;
+        }
+        
+        .toast.warning {
+            border-left: 5px solid #ffcc00;
+        }
+
+        .toast i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        /* Pulsanti e controlli */
+        .button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            background-color: #0099ff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .button:hover {
+            background-color: #0077cc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .button:active {
+            transform: translateY(1px);
+        }
+        
+        .button i {
+            margin-right: 8px;
+        }
+        
+        .button.primary {
+            background-color: #0099ff;
+        }
+        
+        .button.success {
+            background-color: #00cc66;
+        }
+        
+        .button.danger {
+            background-color: #ff3333;
+        }
+        
+        .button.warning {
+            background-color: #ffcc00;
+            color: #333;
+        }
+        
+        .button.disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* Stato di caricamento */
+        .loading {
+            position: relative;
+            color: transparent !important;
+            pointer-events: none;
+        }
+        
+        .loading::after {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-top: -8px;
+            margin-left: -8px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-top-color: #ffffff;
+            animation: button-loading-spinner 1s linear infinite;
+        }
+        
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+            to {
+                transform: rotate(1turn);
+            }
+        }
+
+        /* Per dispositivi mobili */
+        @media (max-width: 768px) {
+            .menu {
+                width: 250px;
+            }
+            
+            main {
+                padding: 15px;
+            }
+            
+            .datetime {
+                font-size: 12px;
+            }
+            
+            .banner-content {
+                padding: 8px 10px;
+            }
+            
+            .banner-stop-btn {
+                padding: 4px 10px;
+                font-size: 12px;
+            }
+            
+            main.with-banner {
+                padding-top: 40px;
+            }
+        }
+
+        /* Per dispositivi molto piccoli */
+        @media (max-width: 480px) {
+            .menu {
+                width: 100%;
+            }
+            
+            .logo {
+                font-size: 16px;
+            }
+            
+            .logo img {
+                height: 24px;
+            }
+            
+            .toast {
+                max-width: 300px;
+            }
+        }
+
+        /* Icone del menu (fontawesome-like) */
+        .fas {
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .fa-tint { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230099ff'%3E%3Cpath d='M12 2l-5.5 9a7 7 0 1 0 11 0L12 2zm0 13a2 2 0 1 1 0-4 2 2 0 0 1 0 4z'/%3E%3C/svg%3E"); }
+        .fa-list { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230099ff'%3E%3Cpath d='M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z'/%3E%3C/svg%3E"); }
+        .fa-plus { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230099ff'%3E%3Cpath d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E"); }
+        .fa-cog { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230099ff'%3E%3Cpath d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z'/%3E%3C/svg%3E"); }
+        .fa-history { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230099ff'%3E%3Cpath d='M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z'/%3E%3C/svg%3E"); }
+        .fa-stop-circle { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4 14H8V8h8v8z'/%3E%3C/svg%3E"); }
+        .fa-bars { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z'/%3E%3C/svg%3E"); }
+    </style>
+</head>
+<body>
+    <header class="status-bar">
+        <div class="menu-icon" onclick="toggleMenu()">
+            <i class="fas fa-bars"></i>
+        </div>
+        <div class="logo">
+            <span>Sistema di Irrigazione</span>
+        </div>
+        <div class="datetime" id="datetime">
+            <span id="date"></span>
+            <span id="time"></span>
+        </div>
+    </header>
+
+    <!-- Banner dello stato del programma in esecuzione -->
+    <div id="program-status-banner" class="program-status-banner">
+        <div class="banner-content">
+            <div class="banner-icon">▶</div>
+            <div class="banner-text">
+                <span id="banner-program-name">Programma in esecuzione</span>
+                <span id="banner-active-zone" class="banner-details">Zona attiva: -</span>
+            </div>
+            <button onclick="stopProgram()" class="banner-stop-btn">STOP</button>
+        </div>
+    </div>
+
+    <div class="overlay menu-overlay" id="menu-overlay" onclick="closeMenu()"></div>
+
+    <nav class="menu" id="menu">
+        <ul>
+            <li data-page="manual.html">
+                <i class="fas fa-tint"></i>
+                Controllo Manuale
+            </li>
+            <li data-page="view_programs.html">
+                <i class="fas fa-list"></i>
+                Visualizza Programmi
+            </li>
+            <li data-page="create_program.html">
+                <i class="fas fa-plus"></i>
+                Crea Programma
+            </li>
+            <li data-page="settings.html">
+                <i class="fas fa-cog"></i>
+                Impostazioni
+            </li>
+            <li data-page="logs.html">
+                <i class="fas fa-history"></i>
+                Log di Sistema
+            </li>
+        </ul>
+        <div class="stop-all-button" onclick="stopAllPrograms()">
+            <i class="fas fa-stop-circle"></i>
+            Arresto Totale
+        </div>
+    </nav>
+
+    <main id="content">
+        <!-- Il contenuto delle pagine verrà caricato qui dinamicamente -->
+        <div class="loading-indicator">Caricamento...</div>
+    </main>
+    
+    <!-- Container per i toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="scripts.js"></script>
+</body>
+</html>

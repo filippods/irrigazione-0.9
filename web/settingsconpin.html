@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <style>
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .settings-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .settings-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-header {
+            background-color: #0099ff;
+            color: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-control {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .input-control:focus {
+            border-color: #0099ff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 153, 255, 0.2);
+        }
+
+        .button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 120px;
+        }
+
+        .button.primary {
+            background-color: #0099ff;
+            color: white;
+        }
+
+        .button.primary:hover {
+            background-color: #007acc;
+            box-shadow: 0 2px 4px rgba(0, 153, 255, 0.3);
+        }
+
+        .button.secondary {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        .button.secondary:hover {
+            background-color: #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .button.danger {
+            background-color: #ff3333;
+            color: white;
+        }
+
+        .button.danger:hover {
+            background-color: #cc0000;
+            box-shadow: 0 2px 4px rgba(255, 0, 0, 0.3);
+        }
+
+        .button.warning {
+            background-color: #ff9900;
+            color: white;
+        }
+
+        .button.warning:hover {
+            background-color: #cc7a00;
+            box-shadow: 0 2px 4px rgba(255, 153, 0, 0.3);
+        }
+
+        .button-icon {
+            margin-right: 8px;
+        }
+
+        /* Zones Grid */
+        .zones-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .zone-card {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #eee;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .zone-card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .zone-card h4 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+
+        .zone-action-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+            margin-left: 10px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #00cc66;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+        
+        /* Status Card */
+        .connection-status {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+        }
+        
+        /* System Actions */
+        .system-actions {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .system-action-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .restart-btn {
+            background-color: #ff9900;
+        }
+        
+        .restart-btn:hover {
+            background-color: #e68a00;
+            box-shadow: 0 4px 8px rgba(255, 153, 0, 0.3);
+        }
+        
+        .reset-settings-btn {
+            background-color: #ff5722;
+        }
+        
+        .reset-settings-btn:hover {
+            background-color: #e64a19;
+            box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3);
+        }
+        
+        .factory-reset-btn {
+            background-color: #d32f2f;
+        }
+        
+        .factory-reset-btn:hover {
+            background-color: #b71c1c;
+            box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3);
+        }
+        
+        /* Loading Button */
+        .button.loading, .system-action-btn.loading {
+            position: relative;
+            color: transparent !important;
+            pointer-events: none;
+        }
+        
+        .button.loading::after, .system-action-btn.loading::after {
+            content: "";
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            margin-top: -10px;
+            margin-left: -10px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-top-color: #ffffff;
+            animation: button-loading-spinner 1s linear infinite;
+        }
+        
+        @keyframes button-loading-spinner {
+            from { transform: rotate(0turn); }
+            to { transform: rotate(1turn); }
+        }
+
+        /* WiFi Networks */
+        .wifi-networks {
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 6px;
+        }
+        
+        .wifi-network {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .wifi-network:last-child {
+            border-bottom: none;
+        }
+        
+        .wifi-network:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .wifi-network.selected {
+            background-color: #e6f7ff;
+            border-left: 3px solid #0099ff;
+        }
+        
+        .wifi-name {
+            font-weight: 500;
+        }
+        
+        .wifi-signal {
+            font-size: 12px;
+            color: #666;
+            padding: 3px 6px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        
+        /* Page Title */
+        .page-title {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #0099ff;
+            padding-bottom: 10px;
+        }
+
+        /* Responsive Improvements */
+        @media (max-width: 600px) {
+            .zones-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .system-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            
+            .button {
+                width: 100%;
+                min-width: auto;
+            }
+            
+            .toggle-switch {
+                margin-top: 5px;
+                margin-left: 0;
+            }
+            
+            .card-content {
+                padding: 15px;
+            }
+        }
+        
+        @media (min-width: 601px) and (max-width: 900px) {
+            .zones-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+            
+            .system-actions {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <h1 class="page-title">Impostazioni</h1>
+            
+            <!-- WiFi Settings -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3>Impostazioni Wi-Fi</h3>
+                </div>
+                <div class="card-content">
+                    <!-- Modalità Client WiFi -->
+                    <div class="input-group">
+                        <div class="input-row" style="justify-content: space-between;">
+                            <label>Modalità Client Wi-Fi:</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="client-enabled" onchange="toggleWifiClientSettings(this.checked)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="wifi-client-settings" style="display: none;">
+                        <div class="input-group">
+                            <label for="wifi-list">Reti disponibili:</label>
+                            <div class="input-row">
+                                <select id="wifi-list" class="input-control"></select>
+                                <button id="scan-wifi-button" class="button secondary" onclick="scanWifiNetworks()">
+                                    Scansiona
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="wifi-networks-container" class="wifi-networks" style="display: none;">
+                            <!-- Le reti WiFi verranno generate dinamicamente -->
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="wifi-password">Password:</label>
+                            <input type="password" id="wifi-password" class="input-control" placeholder="Password della rete WiFi">
+                        </div>
+                        
+                        <button id="connect-wifi-button" class="button primary" onclick="connectToWifi()">
+                            Connetti
+                        </button>
+                    </div>
+                    
+                    <!-- Access Point Settings -->
+                    <div class="input-group" style="margin-top: 20px;">
+                        <label>Impostazioni Access Point (AP):</label>
+                        
+                        <div class="input-group">
+                            <label for="ap-ssid">Nome rete (SSID):</label>
+                            <input type="text" id="ap-ssid" class="input-control" placeholder="Nome rete AP">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="ap-password">Password:</label>
+                            <input type="password" id="ap-password" class="input-control" placeholder="Password AP (min. 8 caratteri)">
+                        </div>
+                    </div>
+                    
+                    <button id="save-wifi-button" class="button primary" onclick="saveWifiSettings()">
+                        Salva Impostazioni Wi-Fi
+                    </button>
+                    
+                    <!-- Connection Status -->
+                    <div id="connection-status" class="connection-status">
+                        <p style="text-align:center">Caricamento stato connessione...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Zone Settings -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3>Impostazioni Zone</h3>
+                </div>
+                <div class="card-content">
+                    <div id="zones-grid" class="zones-grid">
+                        <!-- Zone cards will be populated here via JavaScript -->
+                        <p style="text-align:center; grid-column: 1/-1;">Caricamento zone...</p>
+                    </div>
+                    
+                    <button id="save-zones-button" class="button primary" style="margin-top: 15px;" onclick="saveZonesSettings()">
+                        Salva Impostazioni Zone
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Advanced Settings -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3>Impostazioni Avanzate</h3>
+                </div>
+                <div class="card-content">
+                    <div class="input-group">
+                        <label for="max-active-zones">Numero massimo di zone attive contemporaneamente:</label>
+                        <input type="number" id="max-active-zones" class="input-control" min="1" max="8" value="3">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="activation-delay">Ritardo tra attivazione zone (minuti):</label>
+                        <input type="number" id="activation-delay" class="input-control" min="0" max="30" value="5">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="max-zone-duration">Durata massima attivazione zona (minuti):</label>
+                        <input type="number" id="max-zone-duration" class="input-control" min="1" max="1440" value="180">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="safety-relay-pin">Pin relè di sicurezza:</label>
+                        <input type="number" id="safety-relay-pin" class="input-control" min="0" max="40">
+                    </div>
+                    
+                    <div class="input-group">
+                        <div class="input-row" style="justify-content: space-between;">
+                            <label>Programmi Automatici:</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="automatic-programs-enabled">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button id="save-advanced-button" class="button primary" onclick="saveAdvancedSettings()">
+                        Salva Impostazioni Avanzate
+                    </button>
+                </div>
+            </div>
+            
+            <!-- System Actions -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3>Azioni di Sistema</h3>
+                </div>
+                <div class="card-content">
+                    <p>
+                        Le seguenti azioni influenzano il funzionamento del sistema. Assicurati di sapere cosa stai facendo.
+                    </p>
+                    
+                    <div class="system-actions">
+                        <button id="restart-button" class="system-action-btn restart-btn" onclick="confirmRestartSystem()">
+                            Riavvia Dispositivo
+                        </button>
+                        
+                        <button id="reset-settings-button" class="system-action-btn reset-settings-btn" onclick="confirmResetSettings()">
+                            Reset Impostazioni
+                        </button>
+                        
+                        <button id="factory-reset-button" class="system-action-btn factory-reset-btn" onclick="confirmFactoryReset()">
+                            Reset Dati di Fabbrica
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

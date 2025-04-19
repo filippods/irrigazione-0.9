@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <style>
+.container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Card più piccole */
+    gap: 16px; /* Spazio ridotto tra le card */
+    padding: 15px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.zone-card {
+    background: #ffffff;
+    border-radius: 10px; /* Bordi meno arrotondati */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); /* Ombra più sottile */
+    padding: 15px; /* Padding ridotto */
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.zone-card:hover {
+    transform: translateY(-3px); /* Movimento hover più sottile */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.zone-card h3 {
+    margin: 0 0 12px 0;
+    font-size: 20px; /* Dimensione del testo ridotta */
+    color: #333;
+    text-align: center;
+    font-weight: 600; /* Meno bold */
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.zone-card.active {
+    border: 2px solid #00cc66; /* Bordo più sottile */
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 204, 102, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(0, 204, 102, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 204, 102, 0);
+    }
+}
+
+.input-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px; /* Spazio ridotto */
+    gap: 10px; /* Spazio ridotto */
+}
+
+.input-container label {
+    font-size: 16px; /* Testo più piccolo */
+    font-weight: 500; /* Meno bold */
+}
+
+.zone-card input {
+    flex: 1;
+    padding: 8px 10px; /* Padding ridotto */
+    border: 1px solid #e0e0e0;
+    border-radius: 6px; /* Bordi meno arrotondati */
+    font-size: 16px; /* Testo più piccolo */
+    transition: border-color 0.3s;
+    min-width: 0;
+    width: 100%;
+    font-weight: 400; /* Peso normale */
+}
+
+.zone-card input:focus {
+    border-color: #0099ff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 153, 255, 0.15); /* Ombra più sottile */
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px; /* Ridotta */
+    height: 30px; /* Ridotta */
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 30px; /* Proporzionato */
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 22px; /* Ridotta */
+    width: 22px; /* Ridotta */
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #00cc66;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #00cc66;
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px); /* Ridotto */
+}
+
+input:disabled + .slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.progress-container {
+    margin-top: 12px;
+    position: relative;
+    height: 38px; /* Ridotta */
+}
+
+progress {
+    width: 100%;
+    height: 38px; /* Ridotta */
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    border-radius: 8px; /* Ridotto */
+    background: #f0f0f0;
+    overflow: hidden;
+}
+
+progress::-webkit-progress-bar {
+    background: #f0f0f0;
+    border-radius: 8px; /* Ridotto */
+}
+
+progress::-webkit-progress-value {
+    background: linear-gradient(90deg, #0099ff, #00cc66);
+    border-radius: 8px; /* Ridotto */
+    transition: width 0.3s ease;
+}
+
+progress::-moz-progress-bar {
+    background: linear-gradient(90deg, #0099ff, #00cc66);
+    border-radius: 8px; /* Ridotto */
+    transition: width 0.3s ease;
+}
+
+.timer-display {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 38px; /* Ridotta */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px; /* Ridotto */
+    font-weight: 600; /* Meno bold */
+    color: #333;
+}
+
+.page-title {
+    margin: 0 0 20px 0;
+    font-size: 22px; /* Ridotto */
+    font-weight: 600; /* Meno bold */
+    color: #333;
+    border-bottom: 2px solid #0099ff; /* Più sottile */
+    padding-bottom: 12px; /* Ridotto */
+}
+
+
+
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            background-color: #f9f9f9;
+            border-radius: 12px;
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.05);
+            margin: 20px 0;
+            grid-column: 1 / -1;
+        }
+
+        .empty-state h3 {
+            margin: 10px 0;
+            font-size: 22px; /* Aumentato */
+            color: #666;
+        }
+
+        .empty-state p {
+            color: #888;
+            margin-bottom: 20px;
+            font-size: 16px; /* Aumentato */
+        }
+
+        /* Responsive improvements */
+/* Meno spazio per mobile */
+@media (max-width: 600px) {
+    .container {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 10px;
+    }
+    
+    .zone-card {
+        padding: 12px;
+    }
+    
+    .input-container {
+        margin-bottom: 12px;
+    }
+    
+    .toggle-switch {
+        width: 46px;
+        height: 26px;
+    }
+    
+    .slider:before {
+        height: 18px;
+        width: 18px;
+    }
+    
+    input:checked + .slider:before {
+        transform: translateX(20px);
+    }
+
+    .timer-display {
+        font-size: 16px;
+    }
+}
+        
+        @media (min-width: 601px) and (max-width: 900px) {
+            .container {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1 class="page-title">Controllo Manuale</h1>
+        
+        <div class="container" id="zone-container">
+            <!-- Le card per le zone verranno generate dinamicamente tramite JavaScript -->
+            <div class="empty-state">
+                <h3>Caricamento zone...</h3>
+                <p>Attendere mentre vengono recuperate le informazioni sulle zone.</p>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

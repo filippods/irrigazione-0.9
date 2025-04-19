@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0f0f0 25%, #e0e0e0 100%);
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 15px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .form-section {
+            border: 2px solid transparent;
+            border-radius: 12px;
+            margin: 10px;
+            padding: 15px;
+            width: 100%;
+            background: #ffffff;
+            background: linear-gradient(135deg, #fff, #f9f9f9);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+            position: relative;
+        }
+
+        .form-section h2 {
+            margin-bottom: 15px;
+            color: #222;
+            font-size: 1.5rem;
+        }
+
+        .form-section input,
+        .form-section select {
+            width: 70%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.3s ease;
+        }
+
+        .form-section input:focus,
+        .form-section select:focus {
+            border-color: rgba(0, 136, 255, 0.8);
+        }
+
+        .zone-list,
+        .months-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .month-item,
+        .zone-item {
+            padding: 12px;
+            background-color: #ccc;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .month-item.selected,
+        .zone-item.selected {
+            background-color: #0099ff;
+            color: white;
+        }
+
+        .button {
+            padding: 12px 20px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 25px;
+            background-color: #0099ff;
+            color: white;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #007acc;
+            box-shadow: 0 4px 8px rgba(0, 136, 255, 0.4);
+        }
+        
+        .save-btn {
+            background-color: #0099ff;
+        }
+        
+        .cancel-btn {
+            background-color: #999;
+            margin-left: 10px;
+        }
+        
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <h2 id="page-title">Modifica Programma</h2>
+            <div class="form-section">
+                <label for="program-name">Nome Programma:</label>
+                <input type="text" id="program-name" maxlength="16">
+            </div>
+            <div class="form-section">
+                <label for="start-time">Orario di Partenza:</label>
+                <input type="time" id="start-time">
+            </div>
+            <div class="form-section">
+                <label for="recurrence">Cadenza:</label>
+                <select id="recurrence" onchange="toggleDaysSelection()">
+                    <option value="giornaliero">Giornaliero</option>
+                    <option value="giorni_alterni">Giorni Alterni</option>
+                    <option value="personalizzata">Personalizzata</option>
+                </select>
+            </div>
+            <div class="form-section" id="days-container" style="display: none;">
+                <label>Intervallo di Giorni:</label>
+                <input type="number" id="custom-days-interval" placeholder="Es: 3">
+            </div>
+            <div class="form-section">
+                <label>Seleziona Mesi:</label>
+                <div id="months-list" class="months-list"></div>
+            </div>
+            <div class="form-section">
+                <label>Zone da Attivare:</label>
+                <div id="zone-list" class="zone-list"></div>
+            </div>
+            <div class="button-container">
+                <button onclick="saveProgram()" class="button save-btn">Salva Modifiche</button>
+                <button onclick="cancelEdit()" class="button cancel-btn">Annulla</button>
+            </div>
+        </div>
+    </main>
+    <script src="modify_program.js"></script>
+</body>
+</html>

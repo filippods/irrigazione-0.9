@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <style>
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .logs-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #eee;
+        }
+
+        .logs-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .logs-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .button.primary {
+            background-color: #0099ff;
+            color: white;
+        }
+
+        .button.primary:hover {
+            background-color: #007acc;
+            box-shadow: 0 2px 4px rgba(0, 153, 255, 0.3);
+        }
+
+        .button.danger {
+            background-color: #ff3333;
+            color: white;
+        }
+
+        .button.danger:hover {
+            background-color: #cc0000;
+            box-shadow: 0 2px 4px rgba(255, 0, 0, 0.3);
+        }
+
+        .button-icon {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        .logs-table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .logs-table thead {
+            position: sticky;
+            top: 0;
+            background-color: #333;
+            color: white;
+            z-index: 10;
+        }
+
+        .logs-table th {
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 500;
+            font-size: 14px;
+            border-bottom: 1px solid #444;
+        }
+
+        .logs-table td {
+            padding: 10px 15px;
+            font-size: 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .logs-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .logs-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .log-level {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 12px;
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .log-level.info {
+            background-color: #e3f2fd;
+            color: #0277bd;
+        }
+
+        .log-level.warning {
+            background-color: #fff8e1;
+            color: #ff8f00;
+        }
+
+        .log-level.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .empty-logs {
+            padding: 40px;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 0;
+            color: #0099ff;
+        }
+
+        .loading:after {
+            content: " ";
+            display: block;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border-radius: 50%;
+            border: 6px solid #0099ff;
+            border-color: #0099ff transparent #0099ff transparent;
+            animation: loading 1.2s linear infinite;
+        }
+
+        @keyframes loading {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Button loading state */
+        .button.loading {
+            position: relative;
+            color: transparent !important;
+            pointer-events: none;
+        }
+
+        .button.loading::after {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-top: -8px;
+            margin-left: -8px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-top-color: #ffffff;
+            animation: button-loading-spinner 1s linear infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            from { transform: rotate(0turn); }
+            to { transform: rotate(1turn); }
+        }
+
+        /* Confirmation Dialog */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .overlay.active {
+            display: flex;
+        }
+
+        .confirm-dialog {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .confirm-dialog h3 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .confirm-dialog p {
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .confirm-dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .page-title {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #0099ff;
+            padding-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .logs-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .logs-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .logs-table th:nth-child(2), 
+            .logs-table td:nth-child(2) {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logs-table th, 
+            .logs-table td {
+                padding: 8px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <h1 class="page-title">Log di Sistema</h1>
+            
+            <div class="logs-card">
+                <div class="logs-header">
+                    <h3>Eventi di Sistema</h3>
+                    <div class="logs-actions">
+                        <button id="refresh-logs-btn" class="button primary" onclick="refreshLogs()">
+                            <span class="button-icon">↻</span> Aggiorna
+                        </button>
+                        <button id="clear-logs-btn" class="button danger" onclick="confirmClearLogs()">
+                            <span class="button-icon">🗑</span> Cancella Log
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="logs-table-container">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th width="110">Data</th>
+                                <th width="80">Ora</th>
+                                <th width="100">Livello</th>
+                                <th>Messaggio</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-tbody">
+                            <tr>
+                                <td colspan="4" class="loading">Caricamento log...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Confirmation Dialog -->
+    <div id="confirm-overlay" class="overlay">
+        <div class="confirm-dialog">
+            <h3>Conferma</h3>
+            <p>Sei sicuro di voler cancellare tutti i log di sistema? Questa operazione non può essere annullata.</p>
+            <div class="confirm-dialog-actions">
+                <button class="button" onclick="closeConfirmDialog()">Annulla</button>
+                <button class="button danger" onclick="clearLogs()">Conferma</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
