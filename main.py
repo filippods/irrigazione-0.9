@@ -1,14 +1,11 @@
 """
 File principale del sistema di irrigazione.
-Soluzione diretta per il problema del task di diagnostica.
 """
 from wifi_manager import initialize_network, reset_wifi_module, retry_client_connection
 from web_server import start_web_server
 from zone_manager import initialize_pins, stop_all_zones
 from program_manager import check_programs, reset_program_state
 from log_manager import log_event
-# NON IMPORTARE start_diagnostics
-# from system_monitor import start_diagnostics
 import uasyncio as asyncio
 import gc
 import machine
@@ -76,8 +73,12 @@ async def basic_diagnostics_loop():
             except:
                 log_event("Server web non risponde", "WARNING")
             
-            # Attendi 30 secondi prima del prossimo controllo
-            await asyncio.sleep(30)
+            # Attendi 10 minuti o 600 secondi prima di loggare (ridotto da 30 secondi)
+            # Questo evita troppi log di diagnostica
+            uptime_hours = (time.time() - system_start_time) / 3600
+            log_event(f"Sistema attivo da {uptime_hours:.1f} ore, memoria: {free_mem} bytes liberi ({percent_free:.1f}%)", "INFO")
+            
+            await asyncio.sleep(600)
         
         except asyncio.CancelledError:
             break
