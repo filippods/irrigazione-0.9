@@ -21,7 +21,7 @@ window.MAX_API_RETRIES = 3;                // Numero massimo di tentativi per le
 function initializeViewProgramsPage() {
     console.log("Inizializzazione pagina visualizzazione programmi");
     
-    // Aggiungi stili CSS per lo stato di loading
+    // Aggiungi stili CSS per lo stato di loading e per le card dei programmi
     addCssStyles();
     
     // Carica i dati e mostra i programmi
@@ -43,17 +43,9 @@ function initializeViewProgramsPage() {
         let stopBtn = null;
         
         // Se l'utente ha cliccato su un elemento all'interno del pulsante (es. icona o testo)
-        if (target.closest('.global-stop-btn')) {
-            stopBtn = target.closest('.global-stop-btn');
-        }
-        // Se l'utente ha cliccato direttamente sul pulsante
-        else if (target.classList && target.classList.contains('global-stop-btn')) {
-            stopBtn = target;
-        }
-        
-        // Se abbiamo trovato un pulsante stop attivo
-        if (stopBtn) {
-            console.log("Clic intercettato su pulsante STOP globale!");
+        if (target.closest('.global-stop-btn') || 
+            target.closest('.banner-stop-btn') || 
+            target.closest('.stop-program-button')) {
             stopProgram();
             e.preventDefault();
             e.stopPropagation();
@@ -66,9 +58,9 @@ function initializeViewProgramsPage() {
  */
 function addCssStyles() {
     // Se non esiste già uno stile per la classe loading, aggiungilo
-    if (!document.getElementById('loading-button-style')) {
+    if (!document.getElementById('view-programs-style')) {
         const style = document.createElement('style');
-        style.id = 'loading-button-style';
+        style.id = 'view-programs-style';
         style.innerHTML = `
             .btn.loading {
                 position: relative;
@@ -94,6 +86,243 @@ function addCssStyles() {
             @keyframes button-spin {
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
+            }
+            
+            /* Migliorie per card programmi */
+            .programs-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+                gap: 25px !important;
+                padding: 20px !important;
+                max-width: 1300px !important;
+                margin: 0 auto !important;
+            }
+            
+            .program-card {
+                background: #ffffff;
+                border-radius: 15px !important;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+                overflow: hidden;
+                transition: all 0.3s ease;
+                display: flex;
+                flex-direction: column;
+                position: relative;
+                min-width: 280px !important;
+            }
+            
+            .program-card:hover {
+                transform: translateY(-8px) !important;
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important;
+            }
+            
+            .program-header {
+                background: linear-gradient(135deg, #0099ff, #0066cc) !important;
+                padding: 18px 25px !important;
+            }
+            
+            .program-header h3 {
+                font-size: 20px !important;
+                font-weight: 600 !important;
+            }
+            
+            .program-content {
+                padding: 20px 25px !important;
+            }
+            
+            .info-row {
+                margin-bottom: 16px !important;
+            }
+            
+            .info-label {
+                font-weight: 600 !important;
+                color: #444 !important;
+            }
+            
+            .info-value {
+                color: #222 !important;
+            }
+            
+            .btn {
+                padding: 12px 16px !important;
+                font-size: 14px !important;
+                border-radius: 8px !important;
+                font-weight: 600 !important;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+            }
+            
+            .btn:hover {
+                transform: translateY(-3px) !important;
+                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2) !important;
+            }
+            
+            .btn-start {
+                background-color: #4CAF50 !important;
+                font-size: 16px !important;
+                padding: 15px 20px !important;
+            }
+            
+            .btn-start:hover {
+                background-color: #43A047 !important;
+            }
+            
+            .btn-edit {
+                background-color: #2196F3 !important;
+            }
+            
+            .btn-edit:hover {
+                background-color: #1E88E5 !important;
+            }
+            
+            .btn-delete {
+                background-color: #FF5722 !important;
+            }
+            
+            .btn-delete:hover {
+                background-color: #E64A19 !important;
+            }
+            
+            /* Stile per il pulsante globale di stop migliorato */
+            .global-stop-container {
+                position: fixed !important;
+                bottom: 25px !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                width: 90% !important;
+                max-width: 450px !important;
+                z-index: 1100 !important; /* Aumentato per essere sopra tutti gli altri elementi */
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3) !important;
+                border-radius: 15px !important;
+                animation: fadeInUp 0.5s ease !important;
+            }
+            
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, 20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, 0);
+                }
+            }
+            
+            .global-stop-btn {
+                display: flex !important;
+                align-items: center !important;
+                width: 100% !important;
+                background: linear-gradient(135deg, #ff3333, #cc0000) !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 15px !important;
+                padding: 18px 25px !important;
+                cursor: pointer !important;
+                font-family: 'Poppins', sans-serif !important;
+                transition: all 0.3s ease !important;
+                animation: pulse 2s infinite !important;
+            }
+            
+            .global-stop-btn:hover {
+                background: linear-gradient(135deg, #d32f2f, #b71c1c) !important;
+                transform: scale(1.03) !important;
+            }
+            
+            .stop-icon {
+                font-size: 28px !important;
+                margin-right: 15px !important;
+                font-weight: bold !important;
+            }
+            
+            .stop-text {
+                display: flex !important;
+                flex-direction: column !important;
+                text-align: left !important;
+                flex-grow: 1 !important;
+            }
+            
+            .stop-title {
+                font-size: 18px !important;
+                font-weight: 700 !important;
+                margin-bottom: 5px !important;
+            }
+            
+            .stop-desc {
+                font-size: 14px !important;
+                opacity: 0.9 !important;
+            }
+            
+            /* Nuovi stili per i campi visualizzazione programmi */
+            .month-tag.active {
+                background-color: #e8f5e9 !important;
+                color: #2e7d32 !important;
+                border: 1px solid #a5d6a7 !important;
+                font-weight: 600 !important;
+            }
+            
+            .zone-tag {
+                background-color: #e3f2fd !important; 
+                color: #1565c0 !important;
+                border: 1px solid #90caf9 !important;
+                padding: 8px 10px !important;
+                border-radius: 8px !important;
+                font-weight: 600 !important;
+            }
+            
+            /* Stile migliorato per programma attivo */
+            .active-program {
+                border: 3px solid #00cc66 !important;
+                animation: pulse-green 2s infinite !important;
+            }
+            
+            @keyframes pulse-green {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(0, 204, 102, 0.7);
+                }
+                70% {
+                    box-shadow: 0 0 0 15px rgba(0, 204, 102, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(0, 204, 102, 0);
+                }
+            }
+            
+            .active-indicator {
+                background-color: #00cc66 !important;
+                color: white !important;
+                font-size: 13px !important;
+                font-weight: 600 !important;
+                padding: 6px 12px !important;
+                border-radius: 20px !important;
+                position: absolute !important;
+                top: 15px !important;
+                right: 15px !important;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+                animation: pulsate 2s infinite !important;
+            }
+            
+            /* Layout responsive per card programmi */
+            @media (max-width: 768px) {
+                .programs-container {
+                    grid-template-columns: 1fr !important;
+                    gap: 20px !important;
+                    padding: 15px !important;
+                }
+                
+                .program-card {
+                    min-width: 100% !important;
+                }
+                
+                .program-header {
+                    padding: 15px 20px !important;
+                }
+                
+                .program-content {
+                    padding: 15px 20px !important;
+                }
+                
+                .global-stop-container {
+                    width: 95% !important;
+                    max-width: none !important;
+                }
             }
         `;
         document.head.appendChild(style);
@@ -609,30 +838,50 @@ function hideRunningStatus() {
  * Mostra il pulsante globale di arresto
  */
 function showGlobalStopButton(state) {
-    const stopButton = document.getElementById('global-stop-button');
-    if (!stopButton) return;
+    // Prima cerca il container esistente o creane uno nuovo
+    let stopContainer = document.getElementById('global-stop-button');
+    if (!stopContainer) {
+        stopContainer = document.createElement('div');
+        stopContainer.id = 'global-stop-button';
+        stopContainer.className = 'global-stop-container';
+        document.body.appendChild(stopContainer);
+    }
 
-    // Aggiorna il testo con il nome del programma in esecuzione
-    const programNameElem = document.getElementById('active-program-name');
+    // Ottieni informazioni sul programma
+    const programId = state.current_program_id;
+    let programName = "Programma in esecuzione";
     
-    if (programNameElem && state.current_program_id) {
-        // Ottieni informazioni sul programma
-        const program = window.programsData[state.current_program_id];
-        const programName = program ? program.name : 'Programma in esecuzione';
-        programNameElem.textContent = programName;
+    if (programId && window.programsData[programId]) {
+        programName = window.programsData[programId].name || "Programma";
     }
     
-    // Mostra il pulsante
-    stopButton.style.display = 'block';
+    // Crea il contenuto del pulsante
+    let zoneInfo = '';
+    if (state.active_zone) {
+        zoneInfo = `- Zona: ${state.active_zone.name || 'Zona ' + (state.active_zone.id + 1)}`;
+    }
+    
+    stopContainer.innerHTML = `
+        <button class="global-stop-btn" onclick="stopProgram()">
+            <div class="stop-icon">■</div>
+            <div class="stop-text">
+                <span class="stop-title">ARRESTA PROGRAMMA</span>
+                <span class="stop-desc">${programName} ${zoneInfo}</span>
+            </div>
+        </button>
+    `;
+    
+    // Mostra il container
+    stopContainer.style.display = 'block';
 }
 
 /**
  * Nasconde il pulsante globale di arresto
  */
 function hideGlobalStopButton() {
-    const stopButton = document.getElementById('global-stop-button');
-    if (stopButton) {
-        stopButton.style.display = 'none';
+    const stopContainer = document.getElementById('global-stop-button');
+    if (stopContainer) {
+        stopContainer.style.display = 'none';
     }
 }
 

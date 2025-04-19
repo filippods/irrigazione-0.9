@@ -95,7 +95,7 @@
             background-color: #0099ff;
             color: white;
             z-index: 998;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             animation: slideDown 0.3s ease-out;
         }
         
@@ -108,15 +108,16 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 15px;
+            padding: 15px 20px;
             max-width: 1200px;
             margin: 0 auto;
         }
         
         .banner-icon {
-            font-size: 18px;
-            margin-right: 10px;
+            font-size: 24px;
+            margin-right: 15px;
             animation: pulse 2s infinite;
+            color: white;
         }
         
         @keyframes pulse {
@@ -133,26 +134,31 @@
         
         .banner-text span {
             font-weight: 600;
+            font-size: 16px;
         }
         
         .banner-details {
-            font-size: 12px;
+            font-size: 14px;
             opacity: 0.9;
+            margin-top: 3px;
         }
         
         .banner-stop-btn {
             background-color: #ff3333;
             color: white;
             border: none;
-            padding: 5px 15px;
-            border-radius: 4px;
+            padding: 8px 20px;
+            border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            animation: pulse 2s infinite;
         }
         
         .banner-stop-btn:hover {
             background-color: #d32f2f;
+            transform: scale(1.05);
         }
         
         /* Adatta il contenuto principale per non sovrapporsi al banner quando è visibile */
@@ -377,7 +383,7 @@
             pointer-events: none;
         }
         
-        .loading::after {
+        .loading:after {
             content: "";
             position: absolute;
             width: 16px;
@@ -416,12 +422,20 @@
             }
             
             .banner-content {
-                padding: 8px 10px;
+                padding: 12px 15px;
+            }
+            
+            .banner-text span {
+                font-size: 14px;
+            }
+            
+            .banner-details {
+                font-size: 12px;
             }
             
             .banner-stop-btn {
-                padding: 4px 10px;
-                font-size: 12px;
+                padding: 6px 15px;
+                font-size: 13px;
             }
             
             main.with-banner {

@@ -7,7 +7,7 @@ let maxActiveZones = 3;           // Numero massimo di zone attive (default)
 let zoneStatusInterval = null;    // Intervallo di polling stato zone
 let activeZones = {};             // Stato corrente delle zone attive con timer
 let disabledManualMode = false;   // Flag per disabilitare la modalità manuale
-const POLL_INTERVAL = 3000;       // Intervallo di polling in millisecondi
+const POLL_INTERVAL = 2000;       // Intervallo di polling in millisecondi (ridotto per maggiore reattività)
 
 // ====================== INIZIALIZZAZIONE ======================
 function initializeManualPage(userData) {
@@ -38,17 +38,20 @@ function initializeManualPage(userData) {
             });
     }
     
-    // Aggiungi stili CSS
+    // Aggiungi stili CSS potenziati
     addManualStyles();
     
     // Avvia il polling dello stato
     startStatusPolling();
     
+    // Controlla subito se c'è un programma in esecuzione
+    fetchProgramState();
+    
     // Pulizia quando si cambia pagina
     window.addEventListener('pagehide', cleanupManualPage);
 }
 
-// Aggiunge stili necessari
+// Aggiungi stili necessari migliorati
 function addManualStyles() {
     if (!document.getElementById('manual-styles')) {
         const style = document.createElement('style');
@@ -85,7 +88,8 @@ function addManualStyles() {
                 background-color: #fff;
                 border-radius: 12px;
                 padding: 25px;
-                max-width: 80%;
+                width: 80%;
+                max-width: 500px;
                 text-align: center;
                 box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
                 border-left: 5px solid #ff3333;
@@ -149,27 +153,71 @@ function addManualStyles() {
                 color: white;
                 padding: 12px 24px;
                 border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
                 font-weight: bold;
                 cursor: pointer;
                 animation: pulse 2s infinite;
                 z-index: 999;
                 display: none;
                 width: 85%;
-                max-width: 300px;
+                max-width: 320px;
                 text-align: center;
                 border: none;
                 font-size: 16px;
             }
             
             .stop-program-button.visible {
-                display: block;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .stop-program-button i {
+                margin-right: 10px;
+                font-size: 20px;
             }
             
             @keyframes pulse {
                 0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.7); }
                 70% { box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); }
                 100% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0); }
+            }
+            
+            .container {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 20px;
+                padding: 20px;
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            
+            .zone-card {
+                background: #ffffff;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                padding: 20px;
+                transition: all 0.3s ease;
+                display: flex;
+                flex-direction: column;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            @media (max-width: 768px) {
+                .container {
+                    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                    gap: 15px;
+                }
+                
+                .zone-card {
+                    padding: 15px;
+                }
+                
+                .stop-program-button {
+                    width: 95%;
+                    padding: 10px 20px;
+                }
             }
         `;
         
@@ -301,7 +349,7 @@ function addStopProgramButton() {
     const stopButton = document.createElement('button');
     stopButton.id = 'manual-stop-button';
     stopButton.className = 'stop-program-button';
-    stopButton.textContent = 'ARRESTA PROGRAMMA IN ESECUZIONE';
+    stopButton.innerHTML = '<i>■</i> ARRESTA PROGRAMMA IN ESECUZIONE';
     stopButton.onclick = function() {
         window.stopProgram();
     };
@@ -487,7 +535,7 @@ function deactivateZone(zoneId) {
             if (retryCount < maxRetries) {
                 retryCount++;
                 console.log(`Tentativo ${retryCount}/${maxRetries} di disattivare la zona ${zoneId}`);
-                setTimeout(attemptDeactivation, 500);
+                setTimeout(attemptDeactivation, 500 * retryCount);
             } else {
                 // Dopo tutti i tentativi falliti, mostra un messaggio di errore
                 showToast('Errore di rete durante la disattivazione della zona', 'error');
@@ -606,33 +654,40 @@ function resetProgressBar(zoneId) {
 // ====================== GESTIONE STATO SERVER ======================
 // Ottiene lo stato delle zone dal server
 function fetchZonesStatus() {
-    console.log("Recupero stato zone e programma...");
-    Promise.all([
-        fetch('/get_zones_status').then(response => {
+    console.log("Recupero stato zone...");
+    fetch('/get_zones_status')
+        .then(response => {
             if (!response.ok) throw new Error('Errore nel caricamento dello stato delle zone');
             return response.json();
-        }),
-        fetch('/get_program_state').then(response => {
+        })
+        .then(zonesStatus => {
+            console.log("Stato zone ricevuto:", zonesStatus);
+            
+            // Aggiorna l'UI delle zone
+            updateZonesUI(zonesStatus);
+        })
+        .catch(error => {
+            console.error('Errore nel recupero dello stato delle zone:', error);
+        });
+}
+
+// Ottiene lo stato del programma dal server
+function fetchProgramState() {
+    console.log("Recupero stato programma...");
+    fetch('/get_program_state')
+        .then(response => {
             if (!response.ok) throw new Error('Errore nel caricamento dello stato del programma');
             return response.json();
         })
-    ])
-    .then(([zonesStatus, programState]) => {
-        console.log("Stato zone ricevuto:", zonesStatus);
-        console.log("Stato programma ricevuto:", programState);
-        
-        // Forza l'aggiornamento dello stato del programma ogni volta
-        handleProgramState(programState);
-        
-        // Aggiorna l'UI delle zone
-        updateZonesUI(zonesStatus);
-        
-        // Aggiorna la visibilità del pulsante di arresto
-        updateStopProgramButton(programState);
-    })
-    .catch(error => {
-        console.error('Errore nel recupero dello stato:', error);
-    });
+        .then(programState => {
+            console.log("Stato programma ricevuto:", programState);
+            
+            // Gestisci lo stato del programma
+            handleProgramState(programState);
+        })
+        .catch(error => {
+            console.error('Errore nel recupero dello stato del programma:', error);
+        });
 }
 
 // Gestisce lo stato del programma
@@ -643,33 +698,33 @@ function handleProgramState(programState) {
     // Aggiorna UI in base allo stato del programma
     if (programRunning) {
         disableManualPage(programState);
-    } else {
-        enableManualPage();
-    }
-}
-
-// Aggiorna la visibilità del pulsante di arresto programma
-function updateStopProgramButton(programState) {
-    const stopButton = document.getElementById('manual-stop-button');
-    if (!stopButton) return;
-    
-    if (programState && programState.program_running) {
-        stopButton.style.display = 'block';
         
-        // Ottieni nome programma se disponibile
-        if (programState.current_program_id) {
-            fetch('/data/program.json')
-                .then(response => response.json())
-                .then(programs => {
-                    if (programs && programs[programState.current_program_id]) {
-                        const programName = programs[programState.current_program_id].name || 'Programma';
-                        stopButton.textContent = `ARRESTA "${programName}"`;
-                    }
-                })
-                .catch(err => console.error('Errore caricamento dettagli programma:', err));
+        // Mostra il pulsante di stop
+        const stopButton = document.getElementById('manual-stop-button');
+        if (stopButton) {
+            stopButton.classList.add('visible');
+            
+            // Ottieni nome programma se disponibile
+            if (programState.current_program_id) {
+                fetch('/data/program.json')
+                    .then(response => response.json())
+                    .then(programs => {
+                        if (programs && programs[programState.current_program_id]) {
+                            const programName = programs[programState.current_program_id].name || 'Programma';
+                            stopButton.innerHTML = `<i>■</i> ARRESTA "${programName}"`;
+                        }
+                    })
+                    .catch(err => console.error('Errore caricamento dettagli programma:', err));
+            }
         }
     } else {
-        stopButton.style.display = 'none';
+        enableManualPage();
+        
+        // Nascondi il pulsante di stop
+        const stopButton = document.getElementById('manual-stop-button');
+        if (stopButton) {
+            stopButton.classList.remove('visible');
+        }
     }
 }
 
@@ -705,28 +760,35 @@ function disableManualPage(programState) {
                 if (programs && programs[programState.current_program_id]) {
                     programName = programs[programState.current_program_id].name || 'Programma';
                 }
-                createOverlay(programName);
+                createOverlay(programName, programState);
             })
             .catch(err => {
                 console.error('Errore caricamento dettagli programma:', err);
-                createOverlay(programName);
+                createOverlay(programName, programState);
             });
     } else {
-        createOverlay(programName);
+        createOverlay(programName, programState);
     }
 }
 
 // Crea l'overlay
-function createOverlay(programName) {
+function createOverlay(programName, programState) {
     const overlay = document.createElement('div');
     overlay.id = 'manual-page-overlay';
     overlay.className = 'manual-page-overlay';
     
+    let zoneInfo = '';
+    if (programState && programState.active_zone) {
+        zoneInfo = `<p>Zona attualmente attiva: <strong>${programState.active_zone.name || 'Zona ' + (programState.active_zone.id + 1)}</strong></p>`;
+    }
+    
     overlay.innerHTML = `
         <div class="overlay-message">
             <h3>Controllo Manuale Disabilitato</h3>
-            <p>"${programName}" è attualmente in esecuzione.<br>Il controllo manuale sarà disponibile al termine del programma.</p>
-            <button onclick="window.stopProgram()" style="margin-top: 15px; background-color: #ff3333; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            <p>"${programName}" è attualmente in esecuzione.</p>
+            ${zoneInfo}
+            <p>Il controllo manuale sarà disponibile al termine del programma.</p>
+            <button onclick="window.stopProgram()" style="margin-top: 20px; background-color: #ff3333; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
                 ARRESTA PROGRAMMA
             </button>
         </div>
@@ -843,6 +905,13 @@ function updateZonesUI(zonesStatus) {
     });
 }
 
+// ====================== ESPOSIZIONE FUNZIONI GLOBALI ======================
+window.handleProgramState = handleProgramState;
+window.enableManualPage = enableManualPage;
+window.disableManualPage = disableManualPage;
+window.fetchZonesStatus = fetchZonesStatus;
+window.fetchProgramState = fetchProgramState;
+
 // ====================== INIZIALIZZAZIONE ======================
 // Inizializzazione a caricamento documento
 document.addEventListener('DOMContentLoaded', () => {
@@ -851,10 +920,4 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.userData && Object.keys(window.userData).length > 0) {
         initializeManualPage(window.userData);
     }
-    
-    // Esponi funzioni globali necessarie
-    window.handleProgramState = handleProgramState;
-    window.enableManualPage = enableManualPage;
-    window.disableManualPage = disableManualPage;
-    window.fetchZonesStatus = fetchZonesStatus;
 });

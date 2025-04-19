@@ -6,6 +6,7 @@ let userData = {};
 let connectionStatusInterval = null;
 let programStatusInterval = null;
 let currentPage = null;
+let lastProgramState = null;
 
 // Polyfill per crypto.randomUUID per browser più vecchi
 if (!crypto.randomUUID) {
@@ -207,6 +208,9 @@ function loadPage(pageName, callback) {
                             break;
                     }
 
+                    // Controlla immediatamente lo stato del programma per aggiornare UI
+                    checkProgramStatus();
+
                     if (callback && typeof callback === 'function') {
                         callback();
                     }
@@ -321,7 +325,7 @@ function checkProgramStatus() {
             console.log("Stato programma ricevuto:", state);
             
             // Salva lo stato per riferimento futuro
-            window.lastProgramState = state;
+            lastProgramState = state;
             
             // Aggiorna il banner di stato
             updateProgramStatusBanner(state);
@@ -329,6 +333,11 @@ function checkProgramStatus() {
             // Se ci troviamo nella pagina manual, aggiorna anche quella interfaccia
             if (currentPage === 'manual.html' && window.handleProgramState) {
                 window.handleProgramState(state);
+            }
+            
+            // Se ci troviamo nella pagina programmi, aggiorna lo stato
+            if (currentPage === 'view_programs.html' && window.fetchProgramState) {
+                window.fetchProgramState();
             }
         })
         .catch(error => {
@@ -637,10 +646,87 @@ function initializePage() {
         loadPage('manual.html');
     });
     
+    // Migliora il CSS del banner
+    enhanceBannerStyle();
+    
     // Esponi funzioni globali
     window.showToast = showToast;
     window.stopProgram = stopProgram;
     window.stopAllPrograms = stopAllPrograms;
+}
+
+// Aggiungi stili migliorati per il banner
+function enhanceBannerStyle() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .program-status-banner {
+            background-color: #0099ff !important;
+            color: white !important;
+            z-index: 999 !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+            animation: slideDown 0.3s ease-out !important;
+            position: fixed !important;
+            top: 60px !important;
+            left: 0 !important;
+            width: 100% !important;
+        }
+        
+        .banner-stop-btn {
+            background-color: #ff3333 !important;
+            color: white !important;
+            border: none !important;
+            padding: 8px 20px !important;
+            border-radius: 4px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: background-color 0.2s ease !important;
+            animation: pulse 2s infinite !important;
+        }
+        
+        .banner-stop-btn:hover {
+            background-color: #d32f2f !important;
+        }
+        
+        .global-stop-container {
+            position: fixed !important;
+            bottom: 20px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            width: 90% !important;
+            max-width: 400px !important;
+            z-index: 1000 !important;
+            display: none;
+        }
+        
+        .global-stop-btn {
+            width: 100% !important;
+            background-color: #ff3333 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 12px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            animation: pulse 2s infinite !important;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 8px rgba(255, 51, 51, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 51, 51, 0);
+            }
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 // Inizializzazione quando il DOM è completamente caricato
@@ -661,6 +747,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Previeni il trascinamento delle immagini
     document.addEventListener('dragstart', (e) => {
         if (e.target.tagName === 'IMG') {
+            e.preventDefault();
+        }
+    });
+    
+    // Aggiungi listener globale per pulsanti di stop
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.banner-stop-btn') || 
+            e.target.closest('.global-stop-btn') || 
+            e.target.closest('.stop-program-button')) {
+            stopProgram();
             e.preventDefault();
         }
     });
