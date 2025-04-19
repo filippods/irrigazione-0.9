@@ -340,23 +340,26 @@ def stop_zone(zone_id):
         return False
 
     # Verifica stato zona
-    was_last_active = False
-    zone_data = None
+    was_active = zone_id in active_zones
+    was_last_active = was_active and len(active_zones) == 1
+    zone_data = active_zones.get(zone_id)
     
-    if zone_id in active_zones:
-        zone_data = active_zones[zone_id]
-        was_last_active = len(active_zones) == 1
+    # Se la zona non è attiva, lo consideriamo un successo
+    if not was_active:
+        log_event(f"Zona {zone_id} già disattivata", "INFO")
+        return True
     
     # Disattiva la zona
     try:
         zone_pins[zone_id].value(1)  # Disattiva la zona (logica attiva bassa)
-        log_event(f"Zona {zone_id} arrestata", "INFO")
+        log_event(f"Zona {zone_id} arrestata manualmente", "INFO")
     except Exception as e:
         log_event(f"Errore arresto zona {zone_id}: {e}", "ERROR")
         return False
 
     # Aggiorna stato e cancella task
     if zone_id in active_zones:
+        # Cancella eventuale task
         if zone_data and 'task' in zone_data and zone_data['task']:
             try:
                 task = zone_data['task']
@@ -364,8 +367,8 @@ def stop_zone(zone_id):
                 current_task = asyncio.current_task()
                 if task is not current_task and not task.cancelled():
                     task.cancel()
-            except Exception:
-                pass
+            except Exception as e:
+                log_event(f"Errore cancellazione task zona {zone_id}: {e}", "WARNING")
                 
         # Rimuovi zona dalla lista attive
         del active_zones[zone_id]
@@ -377,7 +380,16 @@ def stop_zone(zone_id):
             log_event("Relè di sicurezza disattivato", "INFO")
         except Exception as e:
             log_event(f"Errore spegnimento relè sicurezza: {e}", "ERROR")
-            return False
+            # Continuiamo comunque, la zona è stata disattivata
+    
+    # Verifica che la zona sia stata effettivamente disattivata
+    try:
+        if zone_id in zone_pins and zone_pins[zone_id].value() != 1:
+            # Tentativo aggiuntivo di disattivazione
+            zone_pins[zone_id].value(1)
+            log_event(f"Tentativo aggiuntivo di disattivazione zona {zone_id}", "WARNING")
+    except Exception:
+        pass
             
     return True
 

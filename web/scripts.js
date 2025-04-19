@@ -319,14 +319,22 @@ function checkProgramStatus() {
         })
         .then(state => {
             console.log("Stato programma ricevuto:", state);
+            
+            // Salva lo stato per riferimento futuro
+            window.lastProgramState = state;
+            
             // Aggiorna il banner di stato
             updateProgramStatusBanner(state);
+            
+            // Se ci troviamo nella pagina manual, aggiorna anche quella interfaccia
+            if (currentPage === 'manual.html' && window.handleProgramState) {
+                window.handleProgramState(state);
+            }
         })
         .catch(error => {
             console.error('Errore nel controllo stato programma:', error);
         });
 }
-
 
 // Funzione corretta per aggiornare il banner
 function updateProgramStatusBanner(state) {
@@ -363,21 +371,15 @@ function updateProgramStatusBanner(state) {
                         nameElement.textContent = program.name || 'Programma in esecuzione';
                     }
                 }
+                
+                // Aggiorna informazioni sulla zona attiva
+                updateActiveZoneInfo(state);
             })
-            .catch(err => console.error('Errore caricamento dettagli programma:', err));
-        
-        // Aggiorna informazioni sulla zona attiva
-        if (state.active_zone) {
-            const zoneElement = document.getElementById('banner-active-zone');
-            if (zoneElement) {
-                zoneElement.textContent = `Zona attiva: ${state.active_zone.name || 'Zona ' + (state.active_zone.id + 1)}`;
-            }
-        } else {
-            const zoneElement = document.getElementById('banner-active-zone');
-            if (zoneElement) {
-                zoneElement.textContent = 'Inizializzazione...';
-            }
-        }
+            .catch(err => {
+                console.error('Errore caricamento dettagli programma:', err);
+                // Comunque aggiorna le informazioni sulla zona attiva
+                updateActiveZoneInfo(state);
+            });
     } else {
         console.log("Nessun programma in esecuzione, nascondendo banner");
         
@@ -389,6 +391,142 @@ function updateProgramStatusBanner(state) {
             mainContent.classList.remove('with-banner');
         }
     }
+}
+
+// Funzione per aggiornare le informazioni sulla zona attiva
+function updateActiveZoneInfo(state) {
+    if (!state) return;
+    
+    const zoneElement = document.getElementById('banner-active-zone');
+    if (!zoneElement) return;
+    
+    if (state.active_zone) {
+        zoneElement.textContent = `Zona attiva: ${state.active_zone.name || 'Zona ' + (state.active_zone.id + 1)}`;
+    } else {
+        zoneElement.textContent = 'Inizializzazione...';
+    }
+}
+
+// Funzione per fermare tutti i programmi in esecuzione
+function stopAllPrograms() {
+    // Aggiungi classe loading al pulsante
+    const stopBtn = document.querySelector('.stop-all-button');
+    if (stopBtn) {
+        stopBtn.classList.add('loading');
+    }
+    
+    // Mostra toast di caricamento
+    showToast('Arresto del programma in corso...', 'info');
+    
+    fetch('/stop_program', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (stopBtn) {
+            stopBtn.classList.remove('loading');
+        }
+        
+        if (data.success) {
+            showToast('Arresto totale eseguito con successo', 'success');
+            
+            // Aggiorna immediatamente lo stato del programma
+            checkProgramStatus();
+            
+            // Se siamo nella pagina di visualizzazione programmi, aggiorniamola
+            if (currentPage === 'view_programs.html' && typeof fetchProgramState === 'function') {
+                fetchProgramState();
+            }
+            
+            // Se siamo nella pagina manuale, aggiorniamola
+            if (currentPage === 'manual.html' && typeof fetchZonesStatus === 'function') {
+                fetchZonesStatus();
+            }
+        } else {
+            showToast(`Errore durante l'arresto totale: ${data.error || 'Errore sconosciuto'}`, 'error');
+        }
+    })
+    .catch(error => {
+        if (stopBtn) {
+            stopBtn.classList.remove('loading');
+        }
+        console.error('Errore di rete durante l\'arresto totale:', error);
+        showToast('Errore di rete durante l\'arresto totale', 'error');
+    });
+}
+
+// Funzione per arrestare un programma in esecuzione
+function stopProgram() {
+    // Mostra toast di caricamento
+    showToast('Arresto del programma in corso...', 'info');
+    
+    // Nascondi subito il banner per feedback immediato
+    const banner = document.getElementById('program-status-banner');
+    if (banner) {
+        banner.style.display = 'none';
+    }
+    
+    // Mostra indicatore di caricamento
+    const stopButtons = document.querySelectorAll('.banner-stop-btn, .global-stop-btn, .stop-program-button');
+    stopButtons.forEach(btn => {
+        if (btn) btn.classList.add('loading');
+    });
+    
+    fetch('/stop_program', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Rimuovi indicatori di caricamento
+        stopButtons.forEach(btn => {
+            if (btn) btn.classList.remove('loading');
+        });
+        
+        if (data.success) {
+            showToast('Programma arrestato con successo', 'success');
+            
+            // Aggiorna immediatamente lo stato del programma
+            checkProgramStatus();
+            
+            // Se siamo nella pagina di visualizzazione programmi, aggiorniamola
+            if (currentPage === 'view_programs.html' && typeof fetchProgramState === 'function') {
+                fetchProgramState();
+            }
+            
+            // Se siamo nella pagina manuale, aggiorniamola
+            if (currentPage === 'manual.html' && typeof fetchZonesStatus === 'function') {
+                fetchZonesStatus();
+            }
+            
+            // Per la pagina manual, riattiva l'interfaccia
+            if (currentPage === 'manual.html' && typeof enableManualPage === 'function') {
+                enableManualPage();
+            }
+        } else {
+            // Rimostra il banner in caso di errore
+            if (banner) {
+                banner.style.display = 'block';
+            }
+            
+            showToast(`Errore durante l'arresto del programma: ${data.error || 'Errore sconosciuto'}`, 'error');
+        }
+    })
+    .catch(error => {
+        // Rimuovi indicatori di caricamento
+        stopButtons.forEach(btn => {
+            if (btn) btn.classList.remove('loading');
+        });
+        
+        console.error('Errore di rete durante l\'arresto del programma:', error);
+        showToast('Errore di rete durante l\'arresto del programma', 'error');
+        
+        // Rimostra il banner in caso di errore
+        if (banner) {
+            banner.style.display = 'block';
+        }
+    });
 }
 
 // Avvia polling per il controllo dei programmi con frequenza più alta
@@ -482,108 +620,7 @@ function fetchConnectionStatus() {
         });
 }
 
-// Funzione per fermare tutti i programmi in esecuzione
-function stopAllPrograms() {
-    // Aggiungi classe loading al pulsante
-    const stopBtn = document.querySelector('.stop-all-button');
-    if (stopBtn) {
-        stopBtn.classList.add('loading');
-    }
-    
-    // Mostra toast di caricamento
-    showToast('Arresto del programma in corso...', 'info');
-    
-    fetch('/stop_program', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (stopBtn) {
-            stopBtn.classList.remove('loading');
-        }
-        
-        if (data.success) {
-            showToast('Arresto totale eseguito con successo', 'success');
-            
-            // Aggiorna immediatamente lo stato del programma
-            checkProgramStatus();
-            
-            // Se siamo nella pagina di visualizzazione programmi, aggiorniamola
-            if (currentPage === 'view_programs.html' && typeof fetchProgramState === 'function') {
-                fetchProgramState();
-            }
-            
-            // Se siamo nella pagina manuale, aggiorniamola
-            if (currentPage === 'manual.html' && typeof fetchZonesStatus === 'function') {
-                fetchZonesStatus();
-            }
-        } else {
-            showToast(`Errore durante l'arresto totale: ${data.error || 'Errore sconosciuto'}`, 'error');
-        }
-    })
-    .catch(error => {
-        if (stopBtn) {
-            stopBtn.classList.remove('loading');
-        }
-        console.error('Errore di rete durante l\'arresto totale:', error);
-        showToast('Errore di rete durante l\'arresto totale', 'error');
-    });
-}
-
-// Funzione per arrestare un programma in esecuzione
-function stopProgram() {
-    // Mostra toast di caricamento
-    showToast('Arresto del programma in corso...', 'info');
-    
-    // Nascondi subito il banner per feedback immediato
-    const banner = document.getElementById('program-status-banner');
-    if (banner) {
-        banner.style.display = 'none';
-    }
-    
-    fetch('/stop_program', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Programma arrestato con successo', 'success');
-            
-            // Aggiorna immediatamente lo stato del programma
-            checkProgramStatus();
-            
-            // Se siamo nella pagina di visualizzazione programmi, aggiorniamola
-            if (currentPage === 'view_programs.html' && typeof fetchProgramState === 'function') {
-                fetchProgramState();
-            }
-            
-            // Se siamo nella pagina manuale, aggiorniamola
-            if (currentPage === 'manual.html' && typeof fetchZonesStatus === 'function') {
-                fetchZonesStatus();
-            }
-        } else {
-            // Rimostra il banner in caso di errore
-            if (banner) {
-                banner.style.display = 'block';
-            }
-            
-            showToast(`Errore durante l'arresto del programma: ${data.error || 'Errore sconosciuto'}`, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Errore di rete durante l\'arresto del programma:', error);
-        showToast('Errore di rete durante l\'arresto del programma', 'error');
-        
-        // Rimostra il banner in caso di errore
-        if (banner) {
-            banner.style.display = 'block';
-        }
-    });
-}
-
-// Modifiche alla funzione initializePage
+// Funzione initializePage migliorata
 function initializePage() {
     console.log("Inizializzazione pagina principale");
     
@@ -603,6 +640,7 @@ function initializePage() {
     // Esponi funzioni globali
     window.showToast = showToast;
     window.stopProgram = stopProgram;
+    window.stopAllPrograms = stopAllPrograms;
 }
 
 // Inizializzazione quando il DOM è completamente caricato

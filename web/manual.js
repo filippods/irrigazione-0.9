@@ -54,7 +54,7 @@ function addManualStyles() {
         const style = document.createElement('style');
         style.id = 'manual-styles';
         
-        style.innerHTML = `
+        style.textContent = `
             .zone-card.disabled-mode {
                 opacity: 0.6;
                 pointer-events: none;
@@ -380,6 +380,7 @@ function activateZone(zoneId, duration) {
             // Aggiorna l'UI
             if (zoneCard) zoneCard.classList.add('active');
             if (durationInput) durationInput.disabled = true;
+            if (toggle) toggle.disabled = false;
             
             fetchZonesStatus(); // Aggiorna lo stato dal server
         } else {
@@ -418,57 +419,93 @@ function deactivateZone(zoneId) {
     if (toggle) toggle.disabled = true;
     if (zoneCard) zoneCard.classList.add('loading-indicator');
     
-    fetch('/stop_zone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ zone_id: zoneId })
-    })
-    .then(response => {
-        if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
-        return response.json();
-    })
-    .then(data => {
-        // Rimuovi loading state
-        if (zoneCard) zoneCard.classList.remove('loading-indicator');
-        
-        if (data.success) {
-            showToast(`Zona ${zoneId + 1} disattivata`, 'info');
+    // Effettua un massimo di 3 tentativi in caso di errore
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    function attemptDeactivation() {
+        fetch('/stop_zone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ zone_id: zoneId })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            // Rimuovi loading state
+            if (zoneCard) zoneCard.classList.remove('loading-indicator');
             
-            // Ferma il timer locale
-            stopZoneTimer(zoneId);
-            
-            // Aggiorna l'UI
-            if (zoneCard) zoneCard.classList.remove('active');
-            const durationInput = document.getElementById(`duration-${zoneId}`);
-            if (durationInput) durationInput.disabled = false;
-            
-            // Reset barra di progresso
-            resetProgressBar(zoneId);
-            
-            if (toggle) toggle.disabled = false;
-            
-            fetchZonesStatus(); // Aggiorna lo stato dal server
-        } else {
-            showToast(`Errore: ${data.error || 'Disattivazione zona fallita'}`, 'error');
-            
-            // Reset UI in caso di errore
-            if (toggle) {
-                toggle.checked = true;
-                toggle.disabled = false;
+            if (data.success) {
+                showToast(`Zona ${zoneId + 1} disattivata`, 'info');
+                
+                // Ferma il timer locale
+                stopZoneTimer(zoneId);
+                
+                // Aggiorna l'UI
+                if (zoneCard) zoneCard.classList.remove('active');
+                const durationInput = document.getElementById(`duration-${zoneId}`);
+                if (durationInput) durationInput.disabled = false;
+                
+                // Reset barra di progresso
+                resetProgressBar(zoneId);
+                
+                if (toggle) {
+                    toggle.checked = false; // Assicurati che il toggle sia disattivato
+                    toggle.disabled = false;
+                }
+                
+                fetchZonesStatus(); // Aggiorna lo stato dal server
+            } else {
+                console.error(`Errore nella disattivazione della zona: ${data.error || 'Errore sconosciuto'}`);
+                
+                // Riprova se non abbiamo raggiunto il numero massimo di tentativi
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    console.log(`Tentativo ${retryCount}/${maxRetries} di disattivare la zona ${zoneId}`);
+                    setTimeout(attemptDeactivation, 500);
+                } else {
+                    // Dopo tutti i tentativi falliti, mostra un messaggio di errore
+                    showToast(`Errore: ${data.error || 'Disattivazione zona fallita'}`, 'error');
+                    
+                    // Reset UI in caso di errore
+                    if (toggle) {
+                        toggle.checked = true; // Mantieni checked perché la zona è ancora attiva
+                        toggle.disabled = false;
+                    }
+                    
+                    if (zoneCard) zoneCard.classList.remove('loading-indicator');
+                    fetchZonesStatus(); // Ricarica lo stato dal server
+                }
             }
-        }
-    })
-    .catch(error => {
-        console.error('Errore durante la disattivazione della zona:', error);
-        showToast('Errore di rete durante la disattivazione della zona', 'error');
-        
-        // Reset UI in caso di errore
-        if (toggle) {
-            toggle.checked = true;
-            toggle.disabled = false;
-        }
-        if (zoneCard) zoneCard.classList.remove('loading-indicator');
-    });
+        })
+        .catch(error => {
+            console.error('Errore durante la disattivazione della zona:', error);
+            
+            // Riprova se non abbiamo raggiunto il numero massimo di tentativi
+            if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`Tentativo ${retryCount}/${maxRetries} di disattivare la zona ${zoneId}`);
+                setTimeout(attemptDeactivation, 500);
+            } else {
+                // Dopo tutti i tentativi falliti, mostra un messaggio di errore
+                showToast('Errore di rete durante la disattivazione della zona', 'error');
+                
+                // Reset UI in caso di errore
+                if (toggle) {
+                    toggle.checked = true; // Mantieni checked perché la zona è ancora attiva
+                    toggle.disabled = false;
+                }
+                
+                if (zoneCard) zoneCard.classList.remove('loading-indicator');
+                fetchZonesStatus(); // Ricarica lo stato dal server
+            }
+        });
+    }
+    
+    // Avvia il primo tentativo
+    attemptDeactivation();
 }
 
 // ====================== GESTIONE TIMER E PROGRESS BAR ======================
@@ -585,7 +622,7 @@ function fetchZonesStatus() {
         console.log("Stato programma ricevuto:", programState);
         
         // Forza l'aggiornamento dello stato del programma ogni volta
-        handleProgramState(programState, zonesStatus);
+        handleProgramState(programState);
         
         // Aggiorna l'UI delle zone
         updateZonesUI(zonesStatus);
@@ -599,19 +636,15 @@ function fetchZonesStatus() {
 }
 
 // Gestisce lo stato del programma
-function handleProgramState(programState, zonesStatus) {
+function handleProgramState(programState) {
     console.log("Gestione stato programma:", programState);
     const programRunning = programState && programState.program_running;
     
-    // Verifica se è cambiato lo stato e forza l'aggiornamento
+    // Aggiorna UI in base allo stato del programma
     if (programRunning) {
-        // Forza disabilitazione quando programma in esecuzione
         disableManualPage(programState);
-        disabledManualMode = true;
     } else {
-        // Forza abilitazione quando nessun programma in esecuzione
         enableManualPage();
-        disabledManualMode = false;
     }
 }
 
@@ -621,7 +654,7 @@ function updateStopProgramButton(programState) {
     if (!stopButton) return;
     
     if (programState && programState.program_running) {
-        stopButton.classList.add('visible');
+        stopButton.style.display = 'block';
         
         // Ottieni nome programma se disponibile
         if (programState.current_program_id) {
@@ -636,13 +669,16 @@ function updateStopProgramButton(programState) {
                 .catch(err => console.error('Errore caricamento dettagli programma:', err));
         }
     } else {
-        stopButton.classList.remove('visible');
+        stopButton.style.display = 'none';
     }
 }
 
 // Disabilita la pagina manual
 function disableManualPage(programState) {
     console.log("Disabilitazione controllo manuale - Programma in esecuzione", programState);
+    
+    // Imposta flag globale
+    disabledManualMode = true;
     
     // Disabilita tutte le card
     document.querySelectorAll('.zone-card').forEach(card => {
@@ -660,19 +696,16 @@ function disableManualPage(programState) {
         existingOverlay.remove();
     }
     
-    // Crea e aggiunge l'overlay direttamente
+    // Crea e aggiunge l'overlay con nome programma
     let programName = "Programma in esecuzione";
     if (programState && programState.current_program_id) {
-        const programId = programState.current_program_id;
         fetch('/data/program.json')
             .then(response => response.json())
             .then(programs => {
-                if (programs && programs[programId]) {
-                    programName = programs[programId].name || 'Programma';
-                    createOverlay(programName);
-                } else {
-                    createOverlay(programName);
+                if (programs && programs[programState.current_program_id]) {
+                    programName = programs[programState.current_program_id].name || 'Programma';
                 }
+                createOverlay(programName);
             })
             .catch(err => {
                 console.error('Errore caricamento dettagli programma:', err);
@@ -683,9 +716,8 @@ function disableManualPage(programState) {
     }
 }
 
-// Crea l'overlay con un messaggio personalizzato
+// Crea l'overlay
 function createOverlay(programName) {
-    console.log("Creazione overlay con programma:", programName);
     const overlay = document.createElement('div');
     overlay.id = 'manual-page-overlay';
     overlay.className = 'manual-page-overlay';
@@ -707,6 +739,9 @@ function createOverlay(programName) {
 // Riabilita la pagina manual
 function enableManualPage() {
     console.log("Riabilitazione controllo manuale - Nessun programma in esecuzione");
+    
+    // Resetta flag globale
+    disabledManualMode = false;
     
     // Riabilita tutte le card
     document.querySelectorAll('.zone-card').forEach(card => {
@@ -816,4 +851,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.userData && Object.keys(window.userData).length > 0) {
         initializeManualPage(window.userData);
     }
+    
+    // Esponi funzioni globali necessarie
+    window.handleProgramState = handleProgramState;
+    window.enableManualPage = enableManualPage;
+    window.disableManualPage = disableManualPage;
+    window.fetchZonesStatus = fetchZonesStatus;
 });

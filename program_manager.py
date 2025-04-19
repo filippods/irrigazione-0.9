@@ -6,7 +6,7 @@ con meccanismi di sicurezza e gestione degli errori.
 import ujson
 import time
 import uasyncio as asyncio
-from zone_manager import start_zone, stop_zone, stop_all_zones, get_active_zones_count
+from zone_manager import start_zone, stop_zone, stop_all_zones, get_active_zones_count, get_zones_status
 from program_state import program_running, current_program_id, save_program_state, load_program_state
 from settings_manager import load_user_settings
 from log_manager import log_event
@@ -428,6 +428,34 @@ def is_program_due_today(program):
     # Per valori di recurrence sconosciuti, non eseguire
     return False
 
+def get_program_state():
+    """
+    Ottiene lo stato attuale del programma inclusa la zona attiva.
+    Questo è cruciale per l'interfaccia utente.
+    
+    Returns:
+        dict: Stato del programma con informazioni sulla zona attiva
+    """
+    load_program_state()
+    
+    state = {
+        'program_running': program_running,
+        'current_program_id': current_program_id,
+        'active_zone': None
+    }
+    
+    # Se c'è un programma in esecuzione, aggiungi informazioni sulla zona attiva
+    if program_running:
+        # Ottieni lo stato delle zone
+        zones_status = get_zones_status()
+        # Trova la zona attiva
+        active_zones_list = [zone for zone in zones_status if zone.get('active', False)]
+        if active_zones_list:
+            # Prendi la prima zona attiva (dovrebbe essere solo una durante un programma)
+            state['active_zone'] = active_zones_list[0]
+    
+    return state
+
 async def execute_program(program, manual=False):
     """
     Esegue un programma di irrigazione con gestione robusta degli errori e
@@ -454,24 +482,36 @@ async def execute_program(program, manual=False):
         log_event(f"Impossibile eseguire il programma: altro programma già in esecuzione ({current_program_id})", "WARNING")
         return False
 
-    # Se è un programma automatico, prima arresta tutte le zone manuali
-    # I programmi automatici hanno priorità
+    # Controllo migliorato delle zone attive: sempre arrestare tutte le zone manuali
+    # prima di avviare un programma (automatico o manuale)
     active_count = get_active_zones_count()
     if active_count > 0:
         log_event(f"Arresto zone attive per dare priorità al programma {'manuale' if manual else 'automatico'}", "INFO")
         try:
-            stop_all_zones()
-            await asyncio.sleep(1)  # Piccolo ritardo per sicurezza
+            # Primo tentativo di arresto con logging dettagliato
+            if not stop_all_zones():
+                log_event("Errore durante il primo tentativo di arresto zone attive", "WARNING")
+                # Secondo tentativo di arresto dopo una breve pausa
+                await asyncio.sleep(1)
+                if not stop_all_zones():
+                    log_event("Errore critico: impossibile arrestare le zone attive", "ERROR")
+                    return False
         except Exception as e:
-            log_event(f"Errore durante l'arresto delle zone attive: {e}", "ERROR")
+            log_event(f"Eccezione durante l'arresto delle zone attive: {e}", "ERROR")
+            # Tenta comunque di continuare, ma con cautela
 
-    # Arresta tutte le zone prima di avviare un nuovo programma
+    # Assicurazione finale che tutte le zone siano disattivate
     try:
+        # Verifica esplicita che tutte le zone siano arrestate
         if not stop_all_zones():
-            log_event("Errore durante l'arresto delle zone", "ERROR")
-            return False
+            log_event("Errore durante l'arresto delle zone, tentativo di recupero", "ERROR")
+            # Ultimo tentativo disperato con attesa più lunga
+            await asyncio.sleep(2)
+            if not stop_all_zones():
+                log_event("Impossibile garantire l'arresto di tutte le zone, annullamento avvio programma", "ERROR")
+                return False
     except Exception as e:
-        log_event(f"Eccezione durante l'arresto delle zone: {e}", "ERROR")
+        log_event(f"Eccezione grave durante l'arresto delle zone: {e}", "ERROR")
         return False
 
     # Ottieni l'ID del programma
@@ -779,6 +819,12 @@ async def check_programs():
         if not automatic_programs_enabled:
             return
         
+        # Verifica se c'è già un programma in esecuzione
+        load_program_state()
+        if program_running:
+            log_event("Programma già in esecuzione, verifica saltata", "DEBUG")
+            return
+            
         # Carica i programmi
         programs = load_programs()
         if not programs:
@@ -847,19 +893,22 @@ async def check_programs():
                     if active_in_month and due_today:
                         log_event(f"*** AVVIO programma pianificato: {program_name} ***", "INFO")
                         
-                        # Verifica se c'è già un programma in esecuzione
+                        # Verifica ancora se c'è già un programma in esecuzione
                         load_program_state()  # Assicurati di avere lo stato aggiornato
                         if program_running:
-                            log_event(f"Programma in esecuzione, verrà interrotto per avviare '{program_name}'", "WARNING")
-                            # Interrompi il programma in corso prima di avviare il nuovo
-                            stop_program()  # Questa funzione ferma il programma attivo e tutte le zone
-                            # Breve pausa per assicurarsi che tutto sia fermato
-                            await asyncio.sleep(2)
-                            # Ricarica lo stato per assicurarsi che sia aggiornato
-                            load_program_state()
-                            
+                            log_event(f"Programma in esecuzione, impossibile avviare '{program_name}'", "WARNING")
+                            continue
+                        
                         # Avvia il programma con gestione degli errori
                         try:
+                            # Arresta SEMPRE tutte le zone manuali prima di avviare il programma
+                            active_count = get_active_zones_count()
+                            if active_count > 0:
+                                log_event("Arresto zone manuali attive prima dell'avvio programmato", "INFO")
+                                stop_all_zones()
+                                await asyncio.sleep(1)  # Breve pausa di sicurezza
+                            
+                            # Ora avvia il programma
                             success = await execute_program(program)
                             if success:
                                 log_event(f"Programma '{program_name}' avviato con successo", "INFO")
